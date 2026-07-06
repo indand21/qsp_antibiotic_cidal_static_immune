@@ -1,0 +1,59 @@
+# Byte-compiled / optimized / dll files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+
+# R project
+.Rhistory
+.Rproj.user
+*.Rproj
+
+# Results (generated outputs - do not commit)
+results/
+
+# Artifacts (large model files)
+artifacts/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+test_output*.txt
+decision_support_demo.txt
+
+# Copyrighted source material (do not redistribute)
+data/**/*.pdf
+data/external_validation/figures/
+
+# Manuscript / submission artifacts (kept out of the code repo)
+docs/
+*.docx
