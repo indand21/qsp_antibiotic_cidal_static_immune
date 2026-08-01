@@ -43,6 +43,21 @@ class SimulationResult:
         """Return time, IL-6, TNF"""
         return self.t, self.y[:, 9], self.y[:, 10]
 
+    def get_host_damage(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return time and host-damage (D_host) trajectory."""
+        idx = self.state_names.index('D_host')
+        return self.t, self.y[:, idx]
+
+    def peak_host_damage(self) -> float:
+        """Maximum host damage over the trajectory (severity-of-illness proxy)."""
+        idx = self.state_names.index('D_host')
+        return float(np.max(self.y[:, idx]))
+
+    def terminal_host_damage(self) -> float:
+        """Host damage at the final time point (residual injury)."""
+        idx = self.state_names.index('D_host')
+        return float(self.y[-1, idx])
+
     def get_effect_site_concentration(self, pk_model=None, weight_kg: float = 70.0) -> np.ndarray:
         """
         Reconstruct effect-site concentration trajectory using the analytical
@@ -139,7 +154,7 @@ def run_simulation(
     # PK: A_central, A_peripheral, A_absorption, A_effect
     # PD: B_rep, B_pers, B_SCV, N_eff, Damage, IL6, TNF, PAMP
 
-    y0 = np.zeros(12)
+    y0 = np.zeros(13)
 
     # PK initial: all zero, will load doses via regimen
     y0[0:4] = 0
@@ -153,6 +168,7 @@ def run_simulation(
     y0[9] = initial_conditions.get('IL6', 0)
     y0[10] = initial_conditions.get('TNF', 0)
     y0[11] = initial_conditions.get('PAMP', 0)  # PAMPs start at zero
+    y0[12] = initial_conditions.get('D_host', 0)  # host damage starts at zero
 
     # Pre-compute PK parameter values for analytical concentration
     # CL and Q are already total values in L/h (population mean for 70 kg adult)
@@ -224,8 +240,8 @@ def run_simulation(
         C_effect = get_C_effect_analytical(t)
 
         # PD dynamics
-        pd_state = y[4:12]  # 8 PD states
-        pd_dydt = pd_model.rhs(t, pd_state, C_effect=C_effect, 
+        pd_state = y[4:13]  # 9 PD states (incl. PAMP and D_host)
+        pd_dydt = pd_model.rhs(t, pd_state, C_effect=C_effect,
                                drug_class=drug_class, is_static=(drug_class=='static'))
 
         dydt = np.concatenate([pk_dydt, pd_dydt])
@@ -248,7 +264,8 @@ def run_simulation(
     y = sol.y.T  # transpose to (n_times, n_states)
 
     state_names = ['A_central', 'A_peripheral', 'A_absorption', 'A_effect',
-                   'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP']
+                   'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP',
+                   'D_host']
 
     return SimulationResult(t, y, state_names,
                            {'drug_class': drug_class, 'weight': weight_kg,

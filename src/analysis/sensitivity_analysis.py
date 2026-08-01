@@ -55,6 +55,11 @@ DEFAULT_SA_BOUNDS: Dict[str, List[float]] = {
     "k_IL6_clear":     [0.05, 0.5],      # per hour
     "TNF_IL6_ratio":   [0.1, 0.6],       # dimensionless
 
+    # Host-damage parameters
+    "k_infl":     [0.005, 0.10],    # per hour, inflammation-driven injury scale
+    "k_path":     [0.02, 0.20],     # per hour, pathogen-driven injury scale
+    "k_heal":     [0.02, 0.30],     # per hour, host recovery rate
+
     # PK parameters (per drug — will be scaled by weight)
     "CL":  [5.0, 30.0],   # mL/min/kg
     "Vc":  [0.1, 1.0],    # L/kg
@@ -79,6 +84,9 @@ _PARAM_MAP = {
     "alpha_static":    ("cytokine", "alpha_static"),
     "k_IL6_clear":     ("cytokine", "k_IL6_clear"),
     "TNF_IL6_ratio":   ("cytokine", "TNF_IL6_ratio"),
+    "k_infl":          ("damage", "k_infl"),
+    "k_path":          ("damage", "k_path"),
+    "k_heal":          ("damage", "k_heal"),
     "CL":              ("pk", "CL"),
     "Vc":              ("pk", "Vc"),
     "Vp":              ("pk", "Vp"),
@@ -129,6 +137,11 @@ def metric_peak_resistance_fraction(result) -> float:
     return float(frac.max())
 
 
+def metric_peak_host_damage(result) -> float:
+    """Peak host damage (D_host) over the simulation."""
+    return float(result.peak_host_damage())
+
+
 METRICS: Dict[str, Callable] = {
     "auc_burden":         metric_auc_bacterial_burden,
     "peak_burden":        metric_peak_bacterial_burden,
@@ -136,6 +149,7 @@ METRICS: Dict[str, Callable] = {
     "auc_il6":            metric_auc_il6,
     "peak_il6":           metric_peak_il6,
     "peak_resistance":    metric_peak_resistance_fraction,
+    "peak_host_damage":   metric_peak_host_damage,
 }
 
 
@@ -209,7 +223,7 @@ def _apply_sample_to_params(
         group, attr = _PARAM_MAP[name]
         if group == "pk":
             setattr(pk_params, attr, val)
-        elif group in ("bacteria", "immune", "cytokine"):
+        elif group in ("bacteria", "immune", "cytokine", "damage"):
             setattr(params[group], attr, val)
         else:
             raise ValueError(f"Unknown parameter group: {group}")

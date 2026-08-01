@@ -15,6 +15,9 @@ class BacterialParameters:
     mu_mut: float = 1e-6  # mutation rate per cell per generation (SCV emergence under static) - increased from 1e-7 for clinically relevant heteroresistance
     k_repair: float = 0.3  # per hour, damage repair rate (t1/2 ≈ 2.3h, persists between doses)
     MIC_baseline: float = 1.0  # mg/L, baseline MIC for susceptible strain
+    # Smooth SCV emergence switch (replaces hard H_static < 0.3 cutoff)
+    scv_switch_midpoint: float = 0.3  # static-inhibition level at half-max SCV emergence
+    scv_switch_width: float = 0.05    # sigmoid width; smaller = sharper
 
 @dataclass
 class ImmuneParameters:
@@ -35,6 +38,23 @@ class CytokineParameters:
     alpha_cidal: float = 3.0  # relative cytokine production by cidal drugs (TLR9-mediated)
     k_IL6_clear: float = 0.2  # per hour, IL-6 degradation
     TNF_IL6_ratio: float = 0.3  # TNF produced as fraction of IL-6
+
+@dataclass
+class HostDamageParameters:
+    """Host-damage (damage-response framework) parameters.
+
+    D_host accrues injury from pathogen burden and from normalised
+    inflammatory intensity (fold-change over healthy baseline), and recovers.
+    Values are illustrative and swept in the sensitivity analysis.
+    """
+    k_path: float = 0.08   # per hour, max pathogen-driven injury rate
+    B50: float = 1e7       # CFU/mL, burden at half-max pathogen injury
+    k_infl: float = 0.03   # per hour, inflammation-driven injury scale
+    k_heal: float = 0.10   # per hour, host recovery rate
+    w_TNF: float = 0.5     # weight of TNF fold-change relative to IL-6
+    IL6_ref: float = 10.0  # pg/mL, healthy baseline reference for IL-6
+    TNF_ref: float = 5.0   # pg/mL, healthy baseline reference for TNF
+    I50: float = 5.0       # inflammatory intensity (fold-change) at half-max injury rate
 
 @dataclass
 class PKParameters:
@@ -60,6 +80,7 @@ def get_default_parameters() -> Dict:
         'bacteria': BacterialParameters(),
         'immune': ImmuneParameters(),
         'cytokine': CytokineParameters(),
+        'damage': HostDamageParameters(),
         # Drug-specific PK will be loaded separately
     }
 

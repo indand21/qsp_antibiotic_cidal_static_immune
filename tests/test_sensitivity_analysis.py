@@ -174,7 +174,7 @@ class TestMetricFunctions:
         """All expected metric names should be in METRICS dict."""
         expected = {
             "auc_burden", "peak_burden", "final_burden",
-            "auc_il6", "peak_il6", "peak_resistance",
+            "auc_il6", "peak_il6", "peak_resistance", "peak_host_damage",
         }
         assert set(METRICS.keys()) == expected
 

@@ -5,6 +5,8 @@ Pharmacodynamic model: bacterial dynamics, immune response, cytokine production
 import numpy as np
 from typing import Dict, Tuple
 
+from src.core.parameters import HostDamageParameters
+
 class BacterialPopulationODE:
     """
     Multi-population bacterial ODE system:
@@ -25,6 +27,9 @@ class BacterialPopulationODE:
         self.p_bact = params['bacteria']
         self.p_imm = params['immune']
         self.p_cyto = params['cytokine']
+        # Host-damage params; default keeps backward compatibility with callers
+        # that build a params dict without a 'damage' key.
+        self.p_damage = params.get('damage', HostDamageParameters())
 
     def h_static(self, C: float, EC50: float = 1.0, hill: float = 1.0) -> float:
         """
@@ -82,9 +87,12 @@ class BacterialPopulationODE:
         # PAMP state (index 7) — new
         PAMP = max(y[7], 0) if len(y) > 7 else 0.0
 
+        # Host-damage state (index 8) — new
+        D_host = max(y[8], 0) if len(y) > 8 else 0.0
+
         B_total = B_rep + B_pers + B_SCV
 
-        dydt = np.zeros(8)  # 7 PD states + PAMP
+        dydt = np.zeros(9)  # 7 PD states + PAMP + D_host
 
         # --- Replicating population ---
         # Logistic growth with carrying capacity
@@ -127,17 +135,18 @@ class BacterialPopulationODE:
         dydt[1] = from_rep - immune_kill_pers - exit_pers
 
         # --- Small-colony variant population ---
-        # Emerge under prolonged static pressure
-        # Compute H_static for mutation logic
+        # SCVs emerge under sustained static inhibition. The emergence probability
+        # is a SMOOTH sigmoid of the static-inhibition level (no hard threshold):
+        # strong inhibition (H_static_check -> 0) gives near-full emergence, weak
+        # inhibition (-> 1) gives ~0. Mutation only occurs under static pressure.
         if is_static or drug_class == 'static':
             H_static_check = self.h_static(C_effect, EC50=0.1, hill=1.2)
+            scv_switch = 1.0 / (1.0 + np.exp(
+                (H_static_check - self.p_bact.scv_switch_midpoint)
+                / self.p_bact.scv_switch_width))
+            mutation_rate = self.p_bact.mu_mut * B_rep * scv_switch
         else:
-            H_static_check = 1.0
-
-        if H_static_check < 0.3:  # significant static inhibition
-            mutation_rate = self.p_bact.mu_mut * B_rep
-        else:
-            mutation_rate = 0
+            mutation_rate = 0.0
 
         immune_kill_scv = 0.05 * self.p_imm.k_kill_base * N_eff * B_SCV
 
@@ -197,6 +206,20 @@ class BacterialPopulationODE:
 
         pamp_clear = 2.0 * PAMP  # PAMPs cleared rapidly (t1/2 ≈ 20 min)
         dydt[7] = pamp_release - pamp_clear
+
+        # --- Host damage (damage-response framework) ---
+        # Injury from pathogen burden (saturating) and from normalised inflammatory
+        # intensity (IL-6/TNF fold-change over healthy baseline), with recovery.
+        infl_IL6 = max(IL6 / self.p_damage.IL6_ref - 1.0, 0.0)
+        infl_TNF = max(TNF / self.p_damage.TNF_ref - 1.0, 0.0)
+        infl_intensity = infl_IL6 + self.p_damage.w_TNF * infl_TNF
+        pathogen_injury = self.p_damage.k_path * B_total / (B_total + self.p_damage.B50)
+        # Hill saturation: injury rate plateaus at k_infl as inflammation grows,
+        # so an extreme (and only semi-quantitative) cytokine burst cannot produce
+        # unbounded host damage.
+        inflammation_injury = (self.p_damage.k_infl * infl_intensity
+                               / (infl_intensity + self.p_damage.I50))
+        dydt[8] = pathogen_injury + inflammation_injury - self.p_damage.k_heal * D_host
 
         return dydt
 

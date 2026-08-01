@@ -82,7 +82,7 @@ class TestRunSimulation:
         )
         assert isinstance(result, SimulationResult)
         assert len(result.t) > 0
-        assert result.y.shape[1] == 12  # 4 PK + 8 PD (including PAMP)
+        assert result.y.shape[1] == 13  # 4 PK + 9 PD (including PAMP and D_host)
 
     def test_static_drug(self, pk_model_doxycycline, standard_regimen, pd_model, standard_init_cond):
         result = run_simulation(
@@ -139,7 +139,8 @@ class TestRunSimulation:
     def test_state_names_correct(self, short_simulation_result):
         """Should have correct state names."""
         expected = ['A_central', 'A_peripheral', 'A_absorption', 'A_effect',
-                    'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP']
+                    'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP',
+                    'D_host']
         assert short_simulation_result.state_names == expected
 
     def test_different_methods(self, pk_model_meropenem, standard_regimen, pd_model, standard_init_cond):

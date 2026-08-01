@@ -211,13 +211,13 @@ def predict_timekill(ds: DigitizedDataset) -> np.ndarray:
     drug_class = ds.drug_class
     is_static = (drug_class == "static")
 
-    # 8 PD states: B_rep, B_pers, B_SCV, N_eff, Damage, IL6, TNF, PAMP
+    # 9 PD states: B_rep, B_pers, B_SCV, N_eff, Damage, IL6, TNF, PAMP, D_host
     y0 = np.array([
         float(sc.get("initial_burden", 1e6)),
         float(sc.get("initial_persister", 1e2)),
         float(sc.get("initial_scv", 0.0)),
         immune,
-        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
     ])
 
     def rhs(t, y):
@@ -288,7 +288,7 @@ def _neutropenic_params():
 def _delta_log10_const_conc(pd_model, C, drug_class, initial_burden, t_end=24.0):
     """24 h Delta-log10 CFU under constant concentration C, no immune effectors."""
     is_static = (drug_class == "static")
-    y0 = np.array([initial_burden, 1e2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    y0 = np.array([initial_burden, 1e2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def rhs(t, y):
         return pd_model.rhs(t, y, C_effect=C, drug_class=drug_class, is_static=is_static)

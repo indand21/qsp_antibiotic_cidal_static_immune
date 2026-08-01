@@ -287,8 +287,8 @@ def run_combination_simulation(
     params = get_default_parameters()
     pd_model = BacterialPopulationODE(params)
 
-    # Initialize state vector (4 PK placeholders + 8 PD states incl. PAMP)
-    y0 = np.zeros(12)
+    # Initialize state vector (4 PK placeholders + 9 PD states incl. PAMP and D_host)
+    y0 = np.zeros(13)
     y0[4] = initial_conditions.get("B_rep", 1e5)
     y0[5] = initial_conditions.get("B_pers", 1e2)
     y0[6] = initial_conditions.get("B_SCV", 0)
@@ -297,6 +297,7 @@ def run_combination_simulation(
     y0[9] = initial_conditions.get("IL6", 10)
     y0[10] = initial_conditions.get("TNF", 5)
     y0[11] = initial_conditions.get("PAMP", 0)
+    y0[12] = initial_conditions.get("D_host", 0)
 
     # Create combination therapy model
     combo = CombinationTherapyModel(drugs, interaction)
@@ -332,8 +333,8 @@ def run_combination_simulation(
         individual_effects = combo.compute_individual_effects(C_effects, MICs)
         combined_effect = combo.compute_combined_effect(individual_effects)
 
-        # PD dynamics with combined effect (8 PD states incl. PAMP)
-        pd_state = y[len(drugs) * 4:len(drugs) * 4 + 8]
+        # PD dynamics with combined effect (9 PD states incl. PAMP and D_host)
+        pd_state = y[len(drugs) * 4:len(drugs) * 4 + 9]
 
         # Use the first drug's class for PD dynamics
         # The combined effect modifies the concentration
@@ -345,8 +346,8 @@ def run_combination_simulation(
 
         return np.concatenate([dydt_pk, pd_dydt])
 
-    # Initial conditions for all PK states + PD states (8 PD incl. PAMP)
-    y0_full = np.zeros(len(drugs) * 4 + 8)
+    # Initial conditions for all PK states + PD states (9 PD incl. PAMP and D_host)
+    y0_full = np.zeros(len(drugs) * 4 + 9)
     y0_full[len(drugs) * 4:] = y0[4:]
 
     # Solve ODE
@@ -377,6 +378,7 @@ def run_combination_simulation(
         ])
     state_names.extend([
         "B_rep", "B_pers", "B_SCV", "N_eff", "Damage", "IL6", "TNF", "PAMP",
+        "D_host",
     ])
 
     return SimulationResult(t, y, state_names,

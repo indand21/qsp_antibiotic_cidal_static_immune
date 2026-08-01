@@ -75,6 +75,7 @@ def standard_init_cond():
         "IL6": 10,
         "TNF": 5,
         "PAMP": 0,
+        "D_host": 0,
     }
 
 

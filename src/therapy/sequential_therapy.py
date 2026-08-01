@@ -279,8 +279,8 @@ def run_sequential_simulation(
             "TNF": 5,
         }
 
-    # Build initial state vector (12 states: 4 PK + 8 PD incl. PAMP)
-    y0 = np.zeros(12)
+    # Build initial state vector (13 states: 4 PK + 9 PD incl. PAMP and D_host)
+    y0 = np.zeros(13)
     y0[4] = initial_conditions.get("B_rep", 1e5)
     y0[5] = initial_conditions.get("B_pers", 1e2)
     y0[6] = initial_conditions.get("B_SCV", 0)
@@ -289,6 +289,7 @@ def run_sequential_simulation(
     y0[9] = initial_conditions.get("IL6", 10)
     y0[10] = initial_conditions.get("TNF", 5)
     y0[11] = initial_conditions.get("PAMP", 0)
+    y0[12] = initial_conditions.get("D_host", 0)
 
     # Run each phase sequentially, carrying state forward
     all_t = []
@@ -340,8 +341,8 @@ def run_sequential_simulation(
             A_central = y[0]
             C_effect = _pk_model.concentration_effect(A_central)
 
-            # PD dynamics (8 PD states incl. PAMP)
-            pd_state = y[4:12]
+            # PD dynamics (9 PD states incl. PAMP and D_host)
+            pd_state = y[4:13]
             pd_dydt = _pd_model.rhs(t, pd_state, C_effect=C_effect,
                                     drug_class=_drug_class)
 
@@ -380,6 +381,7 @@ def run_sequential_simulation(
     state_names = [
         'A_central', 'A_peripheral', 'A_absorption', 'A_effect',
         'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP',
+        'D_host',
     ]
 
     return SimulationResult(t_combined, y_combined, state_names,

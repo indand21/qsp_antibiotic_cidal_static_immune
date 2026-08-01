@@ -35,13 +35,17 @@ python -m pytest tests/ -v
 
 - **Pharmacokinetics**: two-compartment model with linear elimination,
   intercompartmental distribution, oral absorption, and an effect-site concentration.
-- **Pharmacodynamics** (eight-state ODE): replicating bacteria, persisters,
-  small-colony variants, immune effectors, cidal damage, IL-6, TNF, and
-  pathogen-associated molecular patterns (PAMPs).
+- **Pharmacodynamics** (nine-state ODE): replicating bacteria, persisters,
+  small-colony variants, immune effectors, cidal damage, IL-6, TNF,
+  pathogen-associated molecular patterns (PAMPs), and an explicit host-damage state.
 - **Drug mechanisms**: bacteriostatic Hill-type growth inhibition vs bactericidal
   direct killing plus damage accumulation, with lysis-driven cytokine amplification.
 - **Host immunity**: burden-dependent effector recruitment and mass-action clearance,
   with clinically recognizable immune phenotypes encoded via the effector level.
+- **Host damage** (damage-response framework): an explicit host-damage state accruing
+  pathogen-driven and inflammation-driven injury with recovery, used as the outcome for
+  comparing bactericidal versus bacteriostatic strategies (see `src/analysis/strategy_margin.py`
+  and `src/analysis/regime_maps.py`).
 
 ## Project structure
 
