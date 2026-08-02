@@ -27,7 +27,7 @@ python cli.py validate
 # Curve-level external validation against digitized published data
 python scripts/run_external_validation.py
 
-# Run the test suite (339 tests)
+# Run the test suite (369 tests)
 python -m pytest tests/ -v
 ```
 
@@ -52,12 +52,12 @@ python -m pytest tests/ -v
 ```
 ├── src/                 # Core source code
 │   ├── core/            # PK/PD model (pk_models, pd_model, simulation, parameters)
-│   ├── analysis/        # Sensitivity, external validation, dosing optimization
+│   ├── analysis/        # Sensitivity, external validation, dosing, strategy margin, regime maps
 │   ├── therapy/         # Combination, sequential, resistance evolution
 │   ├── ml/              # Metamodels and in-silico trials
 │   ├── calibration/     # Parameter calibration
 │   └── utils/           # Config, checkpoint, parallel, cohort helpers
-├── tests/               # Test suite (339 tests)
+├── tests/               # Test suite (369 tests)
 ├── config/              # Drug library and model-parameter YAML/JSON
 ├── data/                # External-validation datasets (digitized CSVs + registry)
 ├── scripts/             # Analysis, simulation, and figure-generation scripts
