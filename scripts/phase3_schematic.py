@@ -1,4 +1,4 @@
-"""Render the JTB Figure 1 model schematic (with the host-damage outcome).
+"""Render the model schematic (Figure 1; with the host-damage outcome).
 
 Writes a Mermaid source that extends the model diagram with the D_host state
 (injury from bacterial burden and from inflammation, with recovery) as the

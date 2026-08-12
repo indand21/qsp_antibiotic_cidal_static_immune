@@ -1,4 +1,4 @@
-"""Regime-map computations for the JTB cidal/static study.
+"""Regime-map computations for the cidal/static host-damage study.
 
 Builds the threshold surface (immune capacity x persister rate, across exposure),
 the hyperinflammatory trade-off map (immune capacity x inflammation susceptibility),

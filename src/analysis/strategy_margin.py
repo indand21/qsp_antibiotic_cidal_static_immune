@@ -1,4 +1,4 @@
-"""Static-vs-cidal strategy-preference margin engine (JTB regime study).
+"""Static-vs-cidal strategy-preference margin engine (regime study).
 
 At a point in (immune capacity, persister rate, inflammation susceptibility)
 space we run the model twice at IDENTICAL exposure, toggling only the drug

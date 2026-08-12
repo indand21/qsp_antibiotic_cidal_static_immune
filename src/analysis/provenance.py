@@ -1,4 +1,4 @@
-"""Parameter-provenance table for the JTB manuscript (honest, ranges + source)."""
+"""Parameter-provenance table (parameter values, ranges and sources)."""
 
 _ROWS = [
     {"name": "k_pers", "value": "0.001-0.05", "units": "/h",
