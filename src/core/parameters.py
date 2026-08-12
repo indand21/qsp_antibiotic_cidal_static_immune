@@ -105,9 +105,9 @@ def get_drug_pk_parameters(drug_name: str) -> PKParameters:
         #   code comment quoting "3-8 L/h" is inconsistent with that AUC and the
         #   18 h half-life). CL set to 1.8 L/h, which places t1/2 (16.2 h at 70 kg,
         #   = 0.693 * Vc*weight / CL), AUC0-inf (~111 mg.h/L) and Cmax (~4.3 mg/L)
-        #   all within the published ranges. The prior CL=5.0 gave only ~5.8 h,
-        #   which curve-level external validation exposed as under-prediction of the
-        #   24 h tail. Ka raised 0.5 -> 1.3 /h to reproduce the observed ~2.7 h tmax.
+        #   all within the published ranges. The prior CL=5.0 gave only ~5.8 h, an
+        #   under-prediction of the observed 24 h tail. Ka raised 0.5 -> 1.3 /h to
+        #   reproduce the observed ~2.7 h tmax.
         return PKParameters(
             CL=1.8,        # L/h apparent CL/F (consistent with AUC ~90-113 and t1/2 ~16-18 h)
             Vc=0.6,        # L/kg (literature: 0.5-1.0 L/kg)
