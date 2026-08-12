@@ -77,12 +77,16 @@ def fig_sobol_robustness():
 
 def fig_representative_trajectories():
     from src.analysis.strategy_margin import run_one
-    phenos = [("neutropenic", 1e5), ("immunosuppressed", 5e6),
-              ("immunocompetent", 1e7), ("hyperinflammatory", 5e7)]
+    # The hyperinflammatory phenotype additionally starts from elevated baseline
+    # cytokines (IL-6, TNF), matching its definition in the Model/Supplement.
+    phenos = [("neutropenic", 1e5, None), ("immunosuppressed", 5e6, None),
+              ("immunocompetent", 1e7, None),
+              ("hyperinflammatory", 5e7, {"IL6": 100, "TNF": 50})]
     fig, axes = plt.subplots(1, 4, figsize=(13, 3), sharey=True)
-    for ax, (label, n_eff) in zip(axes, phenos):
+    for ax, (label, n_eff, ic_ovr) in zip(axes, phenos):
         for dc, color in (("cidal", "crimson"), ("static", "steelblue")):
-            r = run_one(n_eff=n_eff, k_pers=0.01, k_infl=0.03, drug_class=dc)
+            r = run_one(n_eff=n_eff, k_pers=0.01, k_infl=0.03, drug_class=dc,
+                        init_overrides=ic_ovr)
             t, dh = r.get_host_damage()
             ax.plot(t, dh, color=color, label=dc)
         ax.set_title(label); ax.set_xlabel("time (h)")

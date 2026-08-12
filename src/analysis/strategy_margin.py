@@ -39,8 +39,12 @@ def _make_pk():
 
 
 def run_one(n_eff, k_pers, k_infl, drug_class, exposure_scale=1.0, t_span=(0, 96),
-            scv_midpoint=None):
-    """Run one simulation at a grid point for the given drug mechanism."""
+            scv_midpoint=None, init_overrides=None):
+    """Run one simulation at a grid point for the given drug mechanism.
+
+    init_overrides, if given, updates the initial conditions (e.g. elevated
+    baseline cytokines for a hyperinflammatory phenotype).
+    """
     params = get_default_parameters()
     params["bacteria"].k_pers = k_pers
     params["damage"].k_infl = k_infl
@@ -54,6 +58,8 @@ def run_one(n_eff, k_pers, k_infl, drug_class, exposure_scale=1.0, t_span=(0, 96
     )
     ic = dict(DEFAULT_INIT)
     ic["N_eff"] = n_eff
+    if init_overrides:
+        ic.update(init_overrides)
     return run_simulation(
         pk_model=_make_pk(), regimen=regimen, pd_model=pd_model,
         initial_conditions=ic, t_span=t_span, drug_class=drug_class,
