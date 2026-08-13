@@ -125,14 +125,17 @@ class BacterialPopulationODE:
 
         # Transition to persisters
         to_pers = self.p_bact.k_pers * B_rep
+        # Reactivation returns persisters to the replicating pool. The same term
+        # is removed from B_pers below, so the switch conserves bacterial mass
+        # (previously exit_pers left B_pers but was never added back to B_rep).
+        exit_pers = 0.05 * B_pers  # slow reactivation
 
-        dydt[0] = growth_term - immune_kill - cidal_kill - to_pers
+        dydt[0] = growth_term - immune_kill - cidal_kill - to_pers + exit_pers
 
         # --- Persister population ---
         # Persisters are relatively protected from drugs
         from_rep = self.p_bact.k_pers * B_rep
         immune_kill_pers = 0.1 * self.p_imm.k_kill_base * N_eff * B_pers  # slower immune kill
-        exit_pers = 0.05 * B_pers  # slow reactivation
 
         dydt[1] = from_rep - immune_kill_pers - exit_pers
 

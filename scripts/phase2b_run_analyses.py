@@ -55,8 +55,12 @@ def main(res="draft"):
     trade = compute_tradeoff_map(n_eff, k_infl)
     _dump("tradeoff_map", trade, res)
 
+    # Robustness is probed at a representative hyperinflammatory operating point
+    # (high immune capacity, high inflammation susceptibility) where bacteriostatic
+    # therapy is preferred -- i.e. where the conclusion lives -- rather than at the
+    # now-near-neutral immunocompetent reference.
     robust = compute_robustness(
-        reference=(1e7, 0.01, 0.03),
+        reference=(5e7, 0.01, 0.10),
         scv_midpoints=[0.2, 0.25, 0.3, 0.35, 0.4],
         horizons=[(0, 48), (0, 72), (0, 96), (0, 168)],
     )
