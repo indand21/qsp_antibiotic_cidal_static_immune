@@ -111,10 +111,14 @@ class BacterialPopulationODE:
         # damage-accumulation) kill was replaced during recalibration; the Damage
         # state below is retained as a diagnostic and no longer drives killing.
         if drug_class == 'cidal' and not is_static:
-            # Saturating, time-dependent bactericidal kill: the rate plateaus at
+            # Saturating (Hill) concentration-response: the rate plateaus at
             # k_kill_max and is half-maximal at kill_C50, so beyond a few multiples
-            # of the MIC additional concentration does not increase killing (the
-            # beta-lactam %T>MIC paradigm). kill_C50 sets the effective MIC ~1 mg/L.
+            # of kill_C50 additional concentration does not raise the instantaneous
+            # rate. NOTE: despite the plateau this is NOT a mechanistic time-dependent
+            # (%fT>MIC) kill -- it is applied to the whole replicating pool with no
+            # growth-state coupling, and the tolerant persister reservoir makes the
+            # net burden reduction concentration-weighted (manuscript Section 2.7).
+            # kill_C50 sets the effective stasis concentration ~1 mg/L plasma.
             Ch = C_effect ** self.p_bact.kill_hill
             kill_rate = (self.p_bact.k_kill_max * Ch
                          / (Ch + self.p_bact.kill_C50 ** self.p_bact.kill_hill))
