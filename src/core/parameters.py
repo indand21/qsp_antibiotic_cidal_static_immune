@@ -18,6 +18,12 @@ class BacterialParameters:
     # Smooth SCV emergence switch (replaces hard H_static < 0.3 cutoff)
     scv_switch_midpoint: float = 0.3  # static-inhibition level at half-max SCV emergence
     scv_switch_width: float = 0.05    # sigmoid width; smaller = sharper
+    # Saturating (time-dependent) bactericidal kill: rate plateaus at k_kill_max,
+    # half-maximal at kill_C50 (effect-site mg/L), setting the effective MIC ~1 mg/L
+    # plasma. Replaces the earlier over-potent, concentration-dependent kill.
+    k_kill_max: float = 3.0   # per hour, maximum bactericidal kill rate
+    kill_C50: float = 0.6     # mg/L effect-site, concentration at half-max kill
+    kill_hill: float = 4.0    # Hill coefficient (steep onset near MIC -> time-dependence)
 
 @dataclass
 class ImmuneParameters:

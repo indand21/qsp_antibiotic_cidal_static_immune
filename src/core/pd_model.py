@@ -106,19 +106,21 @@ class BacterialPopulationODE:
         # Immune-mediated killing
         immune_kill = self.p_imm.k_kill_base * N_eff * B_rep
 
-        # Cidal drug killing: via damage accumulation + direct concentration-dependent kill
-        # The direct term provides fast initial kill; damage term provides sustained kill
-        # NOTE: Kill rates calibrated for C_effect in mg/L (peak ~7.7 mg/L for meropenem 500mg)
+        # Cidal drug killing: a single saturating (Hill) function of effect-site
+        # concentration (C_effect in mg/L). The earlier two-term (direct +
+        # damage-accumulation) kill was replaced during recalibration; the Damage
+        # state below is retained as a diagnostic and no longer drives killing.
         if drug_class == 'cidal' and not is_static:
-            f_cidal = self.f_cidal_mechanism(C_effect, Damage)
-            # Direct concentration-dependent kill (fast, saturable)
-            # At C=5 mg/L: rate = 8.0 * 5/6 = 6.7/h → combined with growth (0.5/h): net ~6.2/h
-            # 3-log kill in ~8-12 h with q8h dosing
-            direct_kill = 8.0 * C_effect / (C_effect + 1.0) * B_rep
-            # Damage-dependent kill (sustained, requires accumulation)
-            damage_kill = 3.0 * f_cidal * B_rep
-            cidal_kill = direct_kill + damage_kill
+            # Saturating, time-dependent bactericidal kill: the rate plateaus at
+            # k_kill_max and is half-maximal at kill_C50, so beyond a few multiples
+            # of the MIC additional concentration does not increase killing (the
+            # beta-lactam %T>MIC paradigm). kill_C50 sets the effective MIC ~1 mg/L.
+            Ch = C_effect ** self.p_bact.kill_hill
+            kill_rate = (self.p_bact.k_kill_max * Ch
+                         / (Ch + self.p_bact.kill_C50 ** self.p_bact.kill_hill))
+            cidal_kill = kill_rate * B_rep
         else:
+            kill_rate = 0.0
             cidal_kill = 0.0
 
         # Transition to persisters
@@ -196,11 +198,8 @@ class BacterialPopulationODE:
         # PAMPs are released during cidal bacterial killing (cell lysis releases DNA/LPS)
         # This drives the IL-6 burst observed during active bacterial clearance
         if drug_class == 'cidal' and not is_static:
-            # Recompute kill rate for PAMP release
-            f_cidal_pamp = self.f_cidal_mechanism(C_effect, Damage)
-            direct_kill_pamp = 8.0 * C_effect / (C_effect + 1.0) * B_rep
-            damage_kill_pamp = 3.0 * f_cidal_pamp * B_rep
-            pamp_release = 1e7 * (direct_kill_pamp + damage_kill_pamp)
+            # PAMPs are released in proportion to the (recalibrated) cidal kill.
+            pamp_release = 1e7 * cidal_kill
         else:
             pamp_release = 0.0
 

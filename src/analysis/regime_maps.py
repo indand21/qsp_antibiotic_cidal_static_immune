@@ -37,13 +37,18 @@ def compute_tradeoff_map(n_eff_values, k_infl_values):
         for j, k_infl in enumerate(k_infl_values):
             delta[i, j] = margin_at_point(n_eff, 0.01, k_infl).delta
     prefer_static = delta < 0.0
-    # Decomposition at the most-inflammation-susceptible, mid-immune reference point.
-    i_mid = len(n_eff_values) // 2
-    ref = margin_at_point(n_eff_values[i_mid], 0.01, float(k_infl_values[-1]))
+    # Decomposition at a representative hyperinflammatory operating point: high
+    # immune capacity (the immune level of the hyperinflammatory phenotype,
+    # n_eff ~ 5e7) and the most inflammation-susceptible setting. This is the
+    # regime the section characterises; sampling mid-immunity would illustrate a
+    # point where the regime's conclusion does not hold.
+    i_ref = int(np.argmin(np.abs(np.log10(n_eff_values) - np.log10(5e7))))
+    ref = margin_at_point(n_eff_values[i_ref], 0.01, float(k_infl_values[-1]))
     decomposition = {
         "path_static": ref.path_static, "infl_static": ref.infl_static,
         "path_cidal": ref.path_cidal, "infl_cidal": ref.infl_cidal,
-        "n_eff": float(n_eff_values[i_mid]), "k_infl": float(k_infl_values[-1]),
+        "delta": ref.delta,
+        "n_eff": float(n_eff_values[i_ref]), "k_infl": float(k_infl_values[-1]),
     }
     return {
         "n_eff": n_eff_values, "k_infl": k_infl_values,
