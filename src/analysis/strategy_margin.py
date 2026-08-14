@@ -34,8 +34,12 @@ _WEIGHT_KG = 70.0
 
 
 def _make_pk():
-    pk = normalize_pk_parameters(get_drug_pk_parameters("meropenem"), _WEIGHT_KG)
-    return TwoCompartmentPKModel(**pk, effect_site_model=True)
+    # Pass RAW per-kg PK params; run_simulation scales Vc/Vp by weight internally.
+    # (Passing normalize_pk_parameters() output would double-scale Vc, collapsing
+    # drug clearance to t1/2 ~57 h -- see the CONVENTION note in run_simulation.)
+    p = get_drug_pk_parameters("meropenem")
+    return TwoCompartmentPKModel(CL=p.CL, Vc=p.Vc, Vp=p.Vp, Q=p.Q, Ka=p.Ka, Kp=p.Kp,
+                                 effect_site_model=True)
 
 
 def run_one(n_eff, k_pers, k_infl, drug_class, exposure_scale=1.0, t_span=(0, 96),
@@ -52,9 +56,16 @@ def run_one(n_eff, k_pers, k_infl, drug_class, exposure_scale=1.0, t_span=(0, 96
         params["bacteria"].scv_switch_midpoint = scv_midpoint
     pd_model = create_ode_system(params)
 
+    # Dose q8h across the whole evaluation window (with realistic drug clearance,
+    # a fixed 6-dose/48 h course leaves the last ~half of the window undosed, so
+    # the infection re-expands and the comparison degenerates). n_doses tracks
+    # t_span so cidal actually controls the infection over the horizon evaluated.
+    _interval_h = 8
+    n_doses = max(1, int(np.ceil((t_span[1] - t_span[0]) / _interval_h)))
     regimen = DosingRegimen(
         dose_mg=_BASE_DOSE_MG * exposure_scale,
-        interval_hours=8, start_time=0, n_doses=6, infusion_duration_min=30,
+        interval_hours=_interval_h, start_time=0, n_doses=n_doses,
+        infusion_duration_min=30,
     )
     ic = dict(DEFAULT_INIT)
     ic["N_eff"] = n_eff

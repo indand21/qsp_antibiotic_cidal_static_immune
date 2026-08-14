@@ -112,8 +112,11 @@ def effective_mic():
 
 
 def _logkill_regimen(dose_mg, interval, n_doses, inf_min=30):
-    pk = normalize_pk_parameters(get_drug_pk_parameters("meropenem"), WEIGHT)
-    pkm = TwoCompartmentPKModel(**pk, effect_site_model=True)
+    # RAW per-kg params; run_simulation scales Vc/Vp by weight (passing normalized
+    # output here double-scales Vc -> t1/2 ~57 h, see run_simulation CONVENTION).
+    p = get_drug_pk_parameters("meropenem")
+    pkm = TwoCompartmentPKModel(CL=p.CL, Vc=p.Vc, Vp=p.Vp, Q=p.Q, Ka=p.Ka, Kp=p.Kp,
+                                effect_site_model=True)
     reg = DosingRegimen(dose_mg=dose_mg, interval_hours=interval, start_time=0,
                         n_doses=n_doses, infusion_duration_min=inf_min)
     pd = create_ode_system(get_default_parameters())

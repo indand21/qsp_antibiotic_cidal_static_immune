@@ -170,9 +170,12 @@ def run_simulation(
     y0[11] = initial_conditions.get('PAMP', 0)  # PAMPs start at zero
     y0[12] = initial_conditions.get('D_host', 0)  # host damage starts at zero
 
-    # Pre-compute PK parameter values for analytical concentration
-    # CL and Q are already total values in L/h (population mean for 70 kg adult)
-    # Vc and Vp are per-kg (L/kg) and need to be scaled by weight
+    # Pre-compute PK parameter values for analytical concentration.
+    # CONVENTION: the PK model must be built from the RAW per-kg PK parameters
+    # (get_drug_pk_parameters); Vc/Vp are per-kg (L/kg) and are scaled by weight
+    # here. Do NOT pass normalize_pk_parameters() output (already weight-scaled) --
+    # that double-scales Vc, collapsing k_elim = CL/Vc to ~0.012/h (t1/2 ~57 h) so
+    # the concentration barely decays (spurious AUC/concentration weighting).
     CL_val = pk_model.CL             # L/h (total, not per-kg)
     Vc_val = pk_model.Vc * weight_kg  # L (L/kg * kg)
     Vp_val = pk_model.Vp * weight_kg  # L
