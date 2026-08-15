@@ -19,7 +19,10 @@ OUT_DIR = os.path.join("results", "phase2b")
 
 RES = {
     "draft": dict(n=11, exposures=[0.5, 1.0, 2.0, 4.0], sobol_n=16),
-    "final": dict(n=31, exposures=[0.5, 1.0, 2.0, 4.0], sobol_n=256),
+    # 21x21 is the submission resolution: under realistic drug clearance each
+    # simulation is ~3x slower, so a 31x31 grid takes ~3 h for no change in the
+    # (resolution-robust) fractions; 21x21 gives clean figures + n=256 Sobol.
+    "final": dict(n=21, exposures=[0.5, 1.0, 2.0, 4.0], sobol_n=256),
 }
 
 
