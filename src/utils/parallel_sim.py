@@ -16,6 +16,7 @@ Supports:
 """
 
 import numpy as np
+from scipy.integrate import trapezoid  # np.trapz was removed in NumPy 2.0
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Dict, List, Tuple, Optional, Callable, Any
 from dataclasses import dataclass, field
@@ -103,7 +104,7 @@ def default_metrics(result: SimulationResult) -> Dict[str, float]:
         "peak_il6": float(il6.max()),
         "final_il6": float(il6[-1]),
         "peak_scv_fraction": float(frac_scv.max()),
-        "auc_burden_log10": float(np.trapz(log_B, t)),
+        "auc_burden_log10": float(trapezoid(log_B, t)),
     }
 
 

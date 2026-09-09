@@ -8,7 +8,7 @@ import pandas as pd
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
+from scipy.integrate import solve_ivp, trapezoid  # np.trapz removed in NumPy 2.0
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -131,7 +131,7 @@ class InSilicoTrial:
             final_burden = B_total[-1]
 
             # 8. AUC of bacterial burden
-            auc_burden = np.trapz(B_total, t)
+            auc_burden = trapezoid(B_total, t)
 
             return TrialEndpoints(
                 patient_id=patient.patient_id,

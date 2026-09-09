@@ -20,6 +20,11 @@ import warnings
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 
+# Restore SALib 1.4.x Sobol under NumPy 2.0 (ndarray.ptp removal). No-op
+# otherwise; keeps the Sobol estimators numerically identical. See the module
+# docstring for details.
+from src.analysis import _salib_numpy2_compat  # noqa: F401
+
 from src.core.parameters import (
     BacterialParameters, ImmuneParameters, CytokineParameters,
     get_drug_pk_parameters, get_default_parameters
