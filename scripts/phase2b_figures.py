@@ -77,11 +77,10 @@ def fig_sobol_robustness():
 
 def fig_representative_trajectories():
     from src.analysis.strategy_margin import run_one
-    # The hyperinflammatory phenotype additionally starts from elevated baseline
-    # cytokines (IL-6, TNF), matching its definition in the Model/Supplement.
-    phenos = [("neutropenic", 1e5, None), ("immunosuppressed", 5e6, None),
-              ("immunocompetent", 1e7, None),
-              ("hyperinflammatory", 5e7, {"IL6": 100, "TNF": 50})]
+    from src.analysis.regime_maps import REPRESENTATIVE_PHENOTYPES
+    # Shared phenotype definitions (same source as the peak dump in the analysis
+    # driver, so the figure and the audited peaks cannot drift apart).
+    phenos = REPRESENTATIVE_PHENOTYPES
     fig, axes = plt.subplots(1, 4, figsize=(13, 3), sharey=True)
     for ax, (label, n_eff, ic_ovr) in zip(axes, phenos):
         for dc, color in (("cidal", "crimson"), ("static", "steelblue")):

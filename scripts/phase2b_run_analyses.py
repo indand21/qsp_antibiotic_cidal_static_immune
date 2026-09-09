@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.analysis.regime_maps import (
     compute_threshold_surface, compute_tradeoff_map, compute_robustness,
+    compute_representative_peaks,
 )
 from src.analysis.sensitivity_analysis import run_sensitivity_analysis
 
@@ -57,6 +58,9 @@ def main(res="draft"):
 
     trade = compute_tradeoff_map(n_eff, k_infl)
     _dump("tradeoff_map", trade, res)
+
+    peaks = compute_representative_peaks()
+    _dump("representative_peaks", peaks, res)
 
     # Robustness is probed at a representative hyperinflammatory operating point
     # (high immune capacity, high inflammation susceptibility) where bacteriostatic

@@ -7,7 +7,20 @@ return plain dicts of numpy arrays for JSON serialisation by the driver script.
 """
 import numpy as np
 
-from src.analysis.strategy_margin import margin_at_point, margin_grid, zero_crossing
+from src.analysis.strategy_margin import (
+    margin_at_point, margin_grid, run_one, zero_crossing,
+)
+
+# Representative immune phenotypes for the Figure 2 / Section 3.1 trajectories:
+# (label, N_eff(0), initial-condition overrides). The hyperinflammatory phenotype
+# additionally starts from elevated baseline cytokines (IL-6, TNF). This is the
+# single definition shared by the peak computation below and the figure script.
+REPRESENTATIVE_PHENOTYPES = [
+    ("neutropenic", 1e5, None),
+    ("immunosuppressed", 5e6, None),
+    ("immunocompetent", 1e7, None),
+    ("hyperinflammatory", 5e7, {"IL6": 100, "TNF": 50}),
+]
 
 
 def compute_threshold_surface(n_eff_values, k_pers_values, exposures):
@@ -21,10 +34,16 @@ def compute_threshold_surface(n_eff_values, k_pers_values, exposures):
         delta[e] = margin_grid(n_eff_values, k_pers_values, k_infl=0.03, exposure_scale=exp)
         for j in range(len(k_pers_values)):
             boundary[e, j] = zero_crossing(n_eff_values, delta[e, :, j])
+    # Fraction of the sampled grid where static is preferred (Delta < 0) at each
+    # exposure. This is the headline "10/14/19/29%" exposure sweep in the main
+    # text (Section 3.2); emitted here so the manuscript consistency audit can
+    # assert the reported percentages directly against this source-of-truth file.
+    static_fraction_by_exposure = (delta < 0.0).mean(axis=(1, 2))
     return {
         "n_eff": n_eff_values, "k_pers": k_pers_values,
         "exposures": np.asarray(exposures, dtype=float),
         "delta": delta, "boundary_n_eff": boundary,
+        "static_fraction_by_exposure": static_fraction_by_exposure,
     }
 
 
@@ -37,6 +56,10 @@ def compute_tradeoff_map(n_eff_values, k_infl_values):
         for j, k_infl in enumerate(k_infl_values):
             delta[i, j] = margin_at_point(n_eff, 0.01, k_infl).delta
     prefer_static = delta < 0.0
+    # Fraction of the sampled (n_eff x k_infl) grid where static is preferred;
+    # the headline "14% of the sampled regimes" in the main text (Section 3.3).
+    # Emitted so the consistency audit can assert it against this file.
+    static_fraction = float(prefer_static.mean())
     # Decomposition at a FIXED representative hyperinflammatory operating point
     # (n_eff = 5e7, the immune level of the hyperinflammatory phenotype, and the
     # most inflammation-susceptible setting). Evaluated directly at 5e7 rather than
@@ -52,8 +75,27 @@ def compute_tradeoff_map(n_eff_values, k_infl_values):
     }
     return {
         "n_eff": n_eff_values, "k_infl": k_infl_values,
-        "delta": delta, "prefer_static": prefer_static, "decomposition": decomposition,
+        "delta": delta, "prefer_static": prefer_static,
+        "static_fraction": static_fraction, "decomposition": decomposition,
     }
+
+
+def compute_representative_peaks(k_pers=0.01, k_infl=0.03):
+    """Peak host damage per phenotype per drug class (Figure 2 / Section 3.1).
+
+    Emitted so the headline representative-trajectory peaks (cidal approximately
+    0.30 in every phenotype; static approximately 1.08/1.08/1.06/0.09) are tied to
+    a source-of-truth file for the consistency audit.
+    """
+    peaks = {}
+    for label, n_eff, ic_ovr in REPRESENTATIVE_PHENOTYPES:
+        peaks[label] = {}
+        for dc in ("cidal", "static"):
+            r = run_one(n_eff=n_eff, k_pers=k_pers, k_infl=k_infl,
+                        drug_class=dc, init_overrides=ic_ovr)
+            _, dh = r.get_host_damage()
+            peaks[label][dc] = float(np.max(dh))
+    return {"peaks": peaks, "k_pers": k_pers, "k_infl": k_infl}
 
 
 def compute_robustness(reference, scv_midpoints, horizons):
