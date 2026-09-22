@@ -3,7 +3,7 @@ Main simulation engine: couples PK + PD + ODE integration
 """
 
 import numpy as np
-from scipy.integrate import solve_ivp, odeint
+from scipy.integrate import solve_ivp, odeint, trapezoid
 from typing import Dict, Tuple, Optional
 import pandas as pd
 
@@ -118,6 +118,58 @@ class SimulationResult:
 
         return C_effects
 
+    @staticmethod
+    def _time_above_threshold(t: np.ndarray, values: np.ndarray, threshold: float) -> float:
+        """Integrate time above a threshold with linear crossing interpolation.
+
+        Correct on the (non-uniform) solver grid: it interpolates the exact
+        crossing time within each interval, so it does NOT over-count densely
+        sampled peaks the way ``np.mean(values > threshold)`` would.
+        """
+        total = 0.0
+        for t0, t1, v0, v1 in zip(t[:-1], t[1:], values[:-1], values[1:]):
+            dt = t1 - t0
+            above0 = v0 >= threshold
+            above1 = v1 >= threshold
+            if above0 and above1:
+                total += dt
+            elif above0 != above1 and v1 != v0:
+                crossing_fraction = (threshold - v0) / (v1 - v0)
+                crossing_fraction = float(np.clip(crossing_fraction, 0.0, 1.0))
+                total += dt * (crossing_fraction if above1 else 1.0 - crossing_fraction)
+        return float(total)
+
+    def get_pkpd_indices(
+        self,
+        mic: Optional[float] = None,
+        fraction_unbound: Optional[float] = None,
+    ) -> Dict[str, float]:
+        """Compute the three canonical unbound PK/PD exposure indices.
+
+        Returns ``fT_above_MIC_pct`` (percent of the interval the unbound
+        effect-site concentration exceeds the MIC), ``fAUC_MIC`` and
+        ``fCmax_MIC`` over the simulated interval. The isolate-specific MIC and
+        the unbound fraction may be supplied to ``run_simulation`` (stored as
+        ``_mic`` / ``_fraction_unbound``) or passed explicitly here.
+        """
+        mic = self.params.get('_mic') if mic is None else mic
+        if fraction_unbound is None:
+            fraction_unbound = self.params.get('_fraction_unbound', 1.0)
+        if mic is None or mic <= 0:
+            raise ValueError("A positive isolate-specific MIC is required")
+        if not 0 < fraction_unbound <= 1:
+            raise ValueError("fraction_unbound must be in (0, 1]")
+
+        concentration = fraction_unbound * self.get_effect_site_concentration()
+        duration = float(self.t[-1] - self.t[0])
+        time_above = self._time_above_threshold(self.t, concentration, mic)
+        auc = float(trapezoid(concentration, self.t))
+        return {
+            'fT_above_MIC_pct': 100.0 * time_above / duration if duration > 0 else 0.0,
+            'fAUC_MIC': auc / mic,
+            'fCmax_MIC': float(np.max(concentration)) / mic,
+        }
+
 
 def run_simulation(
     pk_model,
@@ -129,7 +181,8 @@ def run_simulation(
     weight_kg: float = 70.0,
     events=None,
     dense_output=False,
-    method='RK45'
+    method='RK45',
+    pd_parameters=None,
 ) -> SimulationResult:
     """
     Run a complete QSP simulation (PK coupled to bacterial PD)
@@ -270,7 +323,15 @@ def run_simulation(
                    'B_rep', 'B_pers', 'B_SCV', 'N_eff', 'Damage', 'IL6', 'TNF', 'PAMP',
                    'D_host']
 
-    return SimulationResult(t, y, state_names,
-                           {'drug_class': drug_class, 'weight': weight_kg,
-                            '_CL_val': CL_val, '_Vc_val': Vc_val, '_Kp_val': Kp_val,
-                            '_Ka_val': Ka_val, '_regimen': regimen})
+    # Optional PK/PD descriptor: store the isolate MIC and unbound fraction so
+    # SimulationResult.get_pkpd_indices() can report unbound Craig indices without
+    # re-passing them. This is metadata only -- it does NOT affect the dynamics
+    # above (the calibrated kill lives in the pd_model / BacterialParameters).
+    result_params = {'drug_class': drug_class, 'weight': weight_kg,
+                     '_CL_val': CL_val, '_Vc_val': Vc_val, '_Kp_val': Kp_val,
+                     '_Ka_val': Ka_val, '_regimen': regimen}
+    if pd_parameters is not None:
+        result_params['_mic'] = getattr(pd_parameters, 'mic', None)
+        result_params['_fraction_unbound'] = getattr(pd_parameters, 'fraction_unbound', 1.0)
+
+    return SimulationResult(t, y, state_names, result_params)

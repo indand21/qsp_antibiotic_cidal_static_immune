@@ -78,6 +78,106 @@ class PKParameters:
     Ka: float  # per hour, absorption rate constant (if oral)
     Kp: float  # tissue penetration coefficient (effect-site/plasma AUC ratio)
 
+
+@dataclass
+class AntibioticPDParameters:
+    """Drug- and isolate-specific PK/PD descriptor for PK/PD-index reporting.
+
+    ``drug_class`` says whether the agent inhibits growth or kills; ``effect_mode``
+    names the exposure pattern that drives that action (the PK/PD-index taxonomy:
+    time-dependent / concentration-dependent / exposure(AUC)-dependent / static).
+    Keeping the two concepts separate stops every bactericidal antibiotic from
+    being assumed beta-lactam-like.
+
+    INTEGRATION NOTE (this repository): the calibrated within-host kill lives in
+    ``BacterialParameters`` (a steep-Hill, MIC~1 mg/L cidal kill that already
+    behaves time-dependently) and is NOT re-parameterised by this descriptor. Of
+    the fields below, only ``mic`` and ``fraction_unbound`` feed the reported
+    unbound Craig indices (``SimulationResult.get_pkpd_indices``); the potency /
+    signal / static fields are carried for provenance and forward compatibility
+    (e.g. adding AUC-driven comparators) and are inert in the default dynamics.
+
+    ``mic`` is deliberately a scenario parameter: the profiles from
+    :func:`get_drug_pd_parameters` encode the *type* of exposure response, not a
+    validated organism-specific potency, so supply the measured isolate MIC.
+    """
+
+    drug_class: str = "cidal"            # "cidal" or "static"
+    effect_mode: str = "time_dependent"  # time/concentration/exposure/static
+    mic: float = 1.0                     # mg/L, isolate MIC at the effect site
+    fraction_unbound: float = 1.0        # unbound fraction of effect-site drug
+    # Descriptive target-engagement fields (reserved; see INTEGRATION NOTE).
+    k_kill_max: float = 8.0
+    ec50_mic_ratio: float = 0.6
+    hill: float = 4.0
+    growth_dependence: float = 1.0
+    signal_on: float = 1.0
+    signal_decay: float = 0.3
+    signal50: float = 3.0
+    static_ec50_mic_ratio: float = 0.1
+    static_hill: float = 1.2
+
+    def validate(self) -> None:
+        """Raise ``ValueError`` for non-physical or unsupported parameters."""
+        valid_modes = {
+            "time_dependent", "concentration_dependent",
+            "exposure_dependent", "static",
+        }
+        if self.drug_class not in {"cidal", "static"}:
+            raise ValueError("drug_class must be 'cidal' or 'static'")
+        if self.effect_mode not in valid_modes:
+            raise ValueError(f"Unsupported effect_mode: {self.effect_mode}")
+        if self.mic <= 0:
+            raise ValueError("mic must be > 0 mg/L")
+        if not 0 < self.fraction_unbound <= 1:
+            raise ValueError("fraction_unbound must be in (0, 1]")
+        if self.hill <= 0 or self.static_hill <= 0:
+            raise ValueError("Hill coefficients must be > 0")
+
+
+def get_drug_pd_parameters(drug_name: str, mic: float = 1.0) -> AntibioticPDParameters:
+    """Return a parsimonious PK/PD descriptor for a supported antibiotic.
+
+    These profiles encode the *type* of exposure response (the effect-mode
+    taxonomy), not a validated organism-specific potency estimate, so supply the
+    isolate/assay ``mic`` whenever it is known. In this repository the descriptor
+    drives PK/PD-index reporting and framing; see ``AntibioticPDParameters``.
+    """
+    name = drug_name.lower()
+    if name == 'meropenem':
+        # Carbapenem: rapid saturation above MIC; efficacy driven by fT>MIC.
+        profile = AntibioticPDParameters(
+            drug_class='cidal', effect_mode='time_dependent', mic=mic,
+            fraction_unbound=0.98, k_kill_max=3.0, ec50_mic_ratio=1.0,
+            hill=4.0, growth_dependence=1.0, signal_decay=0.3,
+        )
+    elif name == 'ciprofloxacin':
+        # Fluoroquinolone: exposure/AUC-driven killing.
+        profile = AntibioticPDParameters(
+            drug_class='cidal', effect_mode='exposure_dependent', mic=mic,
+            fraction_unbound=0.70, k_kill_max=3.0, hill=2.0,
+            growth_dependence=0.25, signal_on=1.0, signal_decay=0.15, signal50=3.0,
+        )
+    elif name == 'vancomycin':
+        # Glycopeptide: conventionally an AUC/MIC driver.
+        profile = AntibioticPDParameters(
+            drug_class='cidal', effect_mode='exposure_dependent', mic=mic,
+            fraction_unbound=0.55, k_kill_max=1.0, hill=1.5,
+            growth_dependence=0.75, signal_on=0.5, signal_decay=0.10, signal50=3.0,
+        )
+    elif name in {'doxycycline', 'linezolid', 'tigecycline'}:
+        # Bacteriostatic: growth inhibition with immune-dependent clearance.
+        profile = AntibioticPDParameters(
+            drug_class='static', effect_mode='static', mic=mic,
+            fraction_unbound=1.0, static_ec50_mic_ratio=1.0,
+            static_hill=1.2, growth_dependence=0.0,
+        )
+    else:
+        raise ValueError(f"Unknown drug: {drug_name}")
+    profile.validate()
+    return profile
+
+
 def get_default_parameters() -> Dict:
     """
     Returns complete default parameter set

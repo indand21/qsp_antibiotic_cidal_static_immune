@@ -114,11 +114,14 @@ class BacterialPopulationODE:
             # Saturating (Hill) concentration-response: the rate plateaus at
             # k_kill_max and is half-maximal at kill_C50, so beyond a few multiples
             # of kill_C50 additional concentration does not raise the instantaneous
-            # rate. NOTE: despite the plateau this is NOT a mechanistic time-dependent
-            # (%fT>MIC) kill -- it is applied to the whole replicating pool with no
-            # growth-state coupling, and the tolerant persister reservoir makes the
-            # net burden reduction concentration-weighted (manuscript Section 2.7).
-            # kill_C50 sets the effective stasis concentration ~1 mg/L plasma.
+            # rate. The steep exponent (kill_hill=4) places half-maximal killing
+            # near the MIC, so with realistic (fast-clearing) PK the net burden
+            # reduction is driven by the time the concentration spends above the
+            # MIC -- i.e. it behaves time-dependently (%fT>MIC): more-fractionated
+            # regimens out-kill a single large dose (manuscript Section 2.7). This
+            # arises from the kill/growth structure, NOT from the persister
+            # reservoir (the fractionation signature persists, and strengthens,
+            # with zero persisters). kill_C50 sets the stasis concentration ~1 mg/L.
             Ch = C_effect ** self.p_bact.kill_hill
             kill_rate = (self.p_bact.k_kill_max * Ch
                          / (Ch + self.p_bact.kill_C50 ** self.p_bact.kill_hill))
