@@ -163,6 +163,10 @@ class BacterialPopulationODE:
         immune_kill_scv = 0.05 * self.p_imm.k_kill_base * N_eff * B_SCV
 
         dydt[2] = mutation_rate - immune_kill_scv
+        # Mass balance: cells that convert to small-colony variants leave the
+        # replicating pool. (mu_mut ~ 1e-6 makes this numerically negligible, but
+        # the conversion is now conserved rather than creating cells from nothing.)
+        dydt[0] -= mutation_rate
 
         # --- Immune effectors (neutrophils/macrophages) ---
         # Recruitment proportional to bacterial burden

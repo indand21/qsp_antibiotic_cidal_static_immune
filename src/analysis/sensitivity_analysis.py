@@ -126,13 +126,13 @@ def metric_final_bacterial_burden(result) -> float:
 
 def metric_auc_il6(result) -> float:
     """Area-under-curve of IL-6 over time."""
-    t, _, il6 = result.get_cytokines()
+    t, il6, _ = result.get_cytokines()  # get_cytokines -> (t, IL6, TNF)
     return float(trapezoid(il6, t))
 
 
 def metric_peak_il6(result) -> float:
     """Peak IL-6 concentration."""
-    _, _, il6 = result.get_cytokines()
+    _, il6, _ = result.get_cytokines()  # get_cytokines -> (t, IL6, TNF)
     return float(il6.max())
 
 

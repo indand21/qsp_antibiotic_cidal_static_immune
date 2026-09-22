@@ -29,15 +29,19 @@ OUT_FIG = os.path.join("docs", "IJAA_submission_package", "figures",
                        "fig01_pkpd_qualification.png")
 
 # Fixed total daily dose (3 g), fractionated across intervals: the classic
-# dose-fractionation design that isolates the time-dependence signature.
-FRACTIONATION = [("q24", 3000.0, 24, 4), ("q12", 1500.0, 12, 8),
-                 ("q8", 1000.0, 8, 12), ("q6", 750.0, 6, 16)]
+# dose-fractionation design that isolates the time-dependence signature. Dose
+# counts and all indices use a single 24 h window so the exposure indices
+# (fT>MIC, fAUC/MIC, fCmax/MIC) and the 24 h net kill share the same interval
+# (a previous version mixed a 96 h fAUC with 24 h kill; see review fix 4c).
+WINDOW_H = 24
+FRACTIONATION = [("q24", 3000.0, 24, 1), ("q12", 1500.0, 12, 2),
+                 ("q8", 1000.0, 8, 3), ("q6", 750.0, 6, 4)]
 STASIS_DOSES_Q8 = [30, 60, 100, 150, 200, 300, 450, 700, 1000]
 
 
-def _indices(dose_mg, interval, n_doses, mic_es, fu, inf_min=30, t_end=96):
-    """Unbound effect-site PK/PD indices for a regimen, referenced to the model's
-    effective (effect-site) MIC."""
+def _indices(dose_mg, interval, n_doses, mic_es, fu, inf_min=30, t_end=WINDOW_H):
+    """Unbound effect-site PK/PD indices for a regimen over the qualification
+    window, referenced to the model's effective (effect-site) MIC."""
     p = get_drug_pk_parameters("meropenem")
     pkm = TwoCompartmentPKModel(CL=p.CL, Vc=p.Vc, Vp=p.Vp, Q=p.Q, Ka=p.Ka, Kp=p.Kp,
                                 effect_site_model=True)
@@ -57,22 +61,24 @@ def main():
     fu = mero.fraction_unbound
     mic_es, mic_pl = effective_mic()                     # emergent model MIC
 
-    # Dose-fractionation (fixed 3 g/day): %fT>MIC, unbound indices, 24 h log-change.
+    # Dose-fractionation (fixed 3 g/day): all indices + 24 h log-change over the
+    # SAME 24 h window, from the unbound-index calculator (get_pkpd_indices).
     frac = []
     for label, dose, iv, n in FRACTIONATION:
-        ft = _fT_over_mic(dose, iv, n, mic_pl)
         idx = _indices(dose, iv, n, mic_es, fu)
         lk = _logkill_regimen(dose, iv, n)
         frac.append(dict(regimen=label, dose_mg=dose, interval_h=iv,
-                         fT_above_MIC_pct=round(ft, 1),
+                         fT_above_MIC_pct=round(idx["fT_above_MIC_pct"], 1),
                          fAUC_MIC=round(idx["fAUC_MIC"], 1),
                          fCmax_MIC=round(idx["fCmax_MIC"], 1),
                          net_log10_change_24h=round(lk, 2)))
 
-    # Stasis %fT>MIC (q8, sweep dose; interpolate %fT>MIC at net change = 0).
+    # Stasis %fT>MIC (q8, sweep dose; interpolate %fT>MIC at net change = 0),
+    # same 24 h unbound convention.
     pts = []
     for d in STASIS_DOSES_Q8:
-        pts.append((_fT_over_mic(d, 8, 3, mic_pl), _logkill_regimen(d, 8, 3)))
+        pts.append((_indices(d, 8, 3, mic_es, fu)["fT_above_MIC_pct"],
+                    _logkill_regimen(d, 8, 3)))
     pts.sort()
     fts = np.array([p[0] for p in pts]); lks = np.array([p[1] for p in pts])
     stasis = None

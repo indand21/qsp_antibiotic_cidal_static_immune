@@ -12,6 +12,23 @@ from src.core.parameters import AntibioticPDParameters, get_drug_pd_parameters
 from src.analysis.strategy_margin import run_one
 
 
+def test_time_above_threshold_crossings():
+    """Crossing interpolation must count the time ACTUALLY above the threshold.
+
+    Regression test for an inverted crossing branch: a linear ramp 0->10 over 1 h
+    with threshold 2 is above from t=0.2 to t=1.0, i.e. 0.8 h (not 0.2 h), and a
+    falling ramp 10->0 is above from t=0 to t=0.8, also 0.8 h.
+    """
+    from src.core.simulation import SimulationResult as SR
+    rising = SR._time_above_threshold(np.array([0.0, 1.0]), np.array([0.0, 10.0]), 2.0)
+    falling = SR._time_above_threshold(np.array([0.0, 1.0]), np.array([10.0, 0.0]), 2.0)
+    assert abs(rising - 0.8) < 1e-9, rising
+    assert abs(falling - 0.8) < 1e-9, falling
+    # fully above / fully below
+    assert abs(SR._time_above_threshold(np.array([0.0, 1.0]), np.array([5.0, 6.0]), 2.0) - 1.0) < 1e-9
+    assert SR._time_above_threshold(np.array([0.0, 1.0]), np.array([0.1, 0.2]), 2.0) == 0.0
+
+
 def test_taxonomy_profiles():
     assert get_drug_pd_parameters("meropenem").effect_mode == "time_dependent"
     assert get_drug_pd_parameters("meropenem").drug_class == "cidal"

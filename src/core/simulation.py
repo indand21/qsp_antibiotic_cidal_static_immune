@@ -136,7 +136,12 @@ class SimulationResult:
             elif above0 != above1 and v1 != v0:
                 crossing_fraction = (threshold - v0) / (v1 - v0)
                 crossing_fraction = float(np.clip(crossing_fraction, 0.0, 1.0))
-                total += dt * (crossing_fraction if above1 else 1.0 - crossing_fraction)
+                # crossing_fraction is the position within [t0,t1] where the value
+                # crosses the threshold. On a RISING crossing (v1 above) the time
+                # ABOVE is the part AFTER the crossing, (1 - crossing_fraction)*dt;
+                # on a FALLING crossing (v0 above) it is the part BEFORE, i.e.
+                # crossing_fraction*dt.
+                total += dt * (1.0 - crossing_fraction if above1 else crossing_fraction)
         return float(total)
 
     def get_pkpd_indices(

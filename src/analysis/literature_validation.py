@@ -264,7 +264,7 @@ def extract_final_burden(result: SimulationResult) -> float:
 
 def extract_peak_il6(result: SimulationResult) -> float:
     """Peak IL-6 concentration (pg/mL)."""
-    _, _, il6 = result.get_cytokines()
+    _, il6, _ = result.get_cytokines()  # get_cytokines -> (t, IL6, TNF)
     return float(il6.max())
 
 
